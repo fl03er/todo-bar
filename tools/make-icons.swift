@@ -70,8 +70,26 @@ for x in 0..<side {
 let mask = maskCtx.makeImage()!
 let body = crop.masking(mask)! // white = keep
 
+// The same body with the eyes painted out, so the app can draw eyes that move.
+let eyes = [(0.422, 0.618), (0.683, 0.562)] // eye centres on the artwork, fractions of the square, top-left origin
+let eyeless: CGImage = {
+    let ctx = CGContext(data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: 0,
+                        space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+    let s = CGFloat(side)
+    ctx.draw(crop, in: CGRect(x: 0, y: 0, width: s, height: s))
+    for (fx, fy) in eyes {
+        // Paint each eye with the body colour just between the eyes, feathered so no edge shows.
+        let c = cropRep.colorAt(x: Int(0.555 * s), y: Int(fy * s))!.usingColorSpace(.deviceRGB)!.cgColor
+        ctx.setFillColor(c)
+        ctx.setShadow(offset: .zero, blur: s * 0.05, color: c)
+        let r = CGRect(x: (fx - 0.115) * s, y: (1 - fy - 0.14) * s, width: 0.23 * s, height: 0.28 * s)
+        for _ in 0..<4 { ctx.fillEllipse(in: r) }
+    }
+    return ctx.makeImage()!.masking(mask)!
+}()
+
 /// The body cropped to its own bounds (wider than tall), `h` pixels high.
-func character(height h: Int) -> NSBitmapImageRep {
+func character(height h: Int, from image: CGImage = body) -> NSBitmapImageRep {
     let x0 = CGFloat(bodyCX - bodyRX) * CGFloat(side), x1 = CGFloat(bodyCX + bodyRX) * CGFloat(side)
     let bottom = min(CGFloat(side), CGFloat(bodyCY + bodyRY) * CGFloat(side))
     let bodyH = bottom - CGFloat(top), scale = CGFloat(h) / bodyH
@@ -86,11 +104,12 @@ func character(height h: Int) -> NSBitmapImageRep {
     // Place the square so the body's box fills the canvas (image y runs bottom-up).
     let full = CGRect(x: -x0 * scale, y: -(CGFloat(side) - bottom) * scale,
                       width: CGFloat(side) * scale, height: CGFloat(side) * scale)
-    ctx.draw(body, in: full)
+    ctx.draw(image, in: full)
     NSGraphicsContext.restoreGraphicsState()
     return r
 }
 save(character(height: 84), "StatusIcon.png")
+save(character(height: 84, from: eyeless), "StatusBody.png")
 save(character(height: 400), "Character.png")
 
 // App icon: the rounded square itself, with transparent corners, inside the standard icon margin.

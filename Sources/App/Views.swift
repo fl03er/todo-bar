@@ -12,8 +12,8 @@ enum Theme {
 
 // MARK: - Character (vector version of the icon, so its eyes can move)
 
-/// The icon's character (just the blue body, no sky). Eyes stay still at rest.
-/// `excited`: the eyes hop and glance around.
+/// The icon's character (just the blue body, no sky). At rest the eyes look around now and then:
+/// they hold a gaze for a few seconds, then glide to the next one. `excited`: the eyes hop and glance around.
 struct Buddy: View {
     var excited: Bool
     var body: some View {
@@ -35,14 +35,38 @@ struct Buddy: View {
     }
 
     private func eye(_ w: CGFloat, _ h: CGFloat, _ t: Double, phase: Double) -> some View {
-        // Excited: alternate hops plus a side-to-side glance.
-        let hop = excited ? -abs(sin(t * 9 + phase)) * h * 0.1 : 0
-        let glance = excited ? sin(t * 3) * w * 0.06 : 0
+        // Excited: alternate hops plus a side-to-side glance. At rest: wander between gaze points.
+        let g = Buddy.gaze(t)
+        let hop = excited ? -abs(sin(t * 9 + phase)) * h * 0.1 : g.y * h * 0.07
+        let glance = excited ? sin(t * 3) * w * 0.06 : g.x * w * 0.08
         return Ellipse()
             .fill(LinearGradient(colors: [.white, Color(red: 0.8, green: 0.92, blue: 1)], startPoint: .top, endPoint: .bottom))
             .frame(width: w * 0.25, height: h * 0.36)
             .rotationEffect(.degrees(-12))
             .offset(x: glance, y: hop)
+    }
+
+    /// Where the eyes look, in -1...1. Each gaze lasts 1.8–4.2 s; the move to the next one takes ~0.35 s and
+    /// eases in and out, like a real glance. Every third gaze returns to the centre.
+    static func gaze(_ t: Double) -> CGPoint {
+        func rand(_ n: Int, _ salt: Double) -> Double { // stable pseudo-random 0..<1 per gaze
+            let v = sin(Double(n) * 12.9898 + salt * 78.233) * 43758.5453
+            return v - v.rounded(.down)
+        }
+        func target(_ n: Int) -> CGPoint {
+            if n % 3 == 0 { return .zero }
+            return CGPoint(x: rand(n, 1) * 2 - 1, y: (rand(n, 2) * 2 - 1) * 0.7)
+        }
+        // Gaze m starts at m·3 s ± 0.6 s; the current gaze is the last one that has started.
+        let block = 3.0
+        func start(_ m: Int) -> Double { Double(m) * block + (rand(m, 3) - 0.5) * 1.2 }
+        var cur = Int((t / block).rounded(.down)) + 1
+        while start(cur) > t { cur -= 1 }
+        let from = cur - 1, since = t - start(cur)
+        let k = min(1, max(0, since / 0.35))
+        let e = k * k * (3 - 2 * k) // smoothstep
+        let a = target(from), b = target(cur)
+        return CGPoint(x: a.x + (b.x - a.x) * e, y: a.y + (b.y - a.y) * e)
     }
 }
 

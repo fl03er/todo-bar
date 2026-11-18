@@ -16,7 +16,7 @@ B="$STAGE/$APP"
 mkdir -p "$B/Contents/MacOS" "$B/Contents/Resources"
 
 swift tools/make-icons.swift "$STAGE/icons" >/dev/null
-cp "$STAGE/icons/StatusIcon.png" "$STAGE/icons/AppIcon.icns" "$B/Contents/Resources/"
+cp "$STAGE/icons/StatusIcon.png" "$STAGE/icons/StatusBody.png" "$STAGE/icons/AppIcon.icns" "$B/Contents/Resources/"
 
 build() { # $1 = output name, rest = sources
   local out=$1; shift
