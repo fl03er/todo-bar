@@ -53,6 +53,12 @@ for x in 0..<side {
 }
 let feather = max(2, side / 120)
 let bodyCX = 0.55, bodyCY = 0.6, bodyRX = 0.35, bodyRY = 0.3
+/// <1 inside the body outline: an ellipse on top, a squarer superellipse below the middle.
+func mochi(_ x: Double, _ y: Double) -> Double {
+    let nx = abs(x - bodyCX) / bodyRX, ny = abs(y - bodyCY) / bodyRY
+    let n = y < bodyCY ? 2.2 : 3.6
+    return pow(pow(nx, n) + pow(ny, n), 1 / n)
+}
 let top = max(0, (rim.min() ?? 0) - feather)
 let maskCtx = CGContext(data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: side,
                         space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)!
@@ -61,9 +67,8 @@ for x in 0..<side {
     for y in 0..<side { // buffer rows run top to bottom
         let d = y - rim[x] // start just inside the rim so no sky fringe is left
         let a = d <= 0 ? 0.0 : d >= feather * 2 ? 1.0 : Double(d) / Double(feather * 2)
-        // Trim the white glow on the sides and bottom: keep an ellipse around the blue body.
-        let ex = (Double(x) / Double(side) - bodyCX) / bodyRX, ey = (Double(y) / Double(side) - bodyCY) / bodyRY
-        let e = max(0, min(1, (1 - (ex * ex + ey * ey).squareRoot()) / 0.02))
+        // Trim the white glow on the sides and bottom: keep a mochi shape (dome top, flatter bottom) around the body.
+        let e = max(0, min(1, (1 - mochi(Double(x) / Double(side), Double(y) / Double(side))) / 0.02))
         buf[y * side + x] = UInt8(255 * min(a, e))
     }
 }

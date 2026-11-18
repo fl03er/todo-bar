@@ -14,6 +14,25 @@ enum Theme {
 
 /// The icon's character (just the blue body, no sky). At rest the eyes look around now and then:
 /// they hold a gaze for a few seconds, then glide to the next one. `excited`: the eyes hop and glance around.
+/// The character's outline: a dome on top and a flatter, rounded bottom (same curve as tools/make-icons.swift).
+struct Mochi: Shape {
+    func path(in r: CGRect) -> Path {
+        let cy = 0.6
+        var p = Path()
+        for i in 0..<120 {
+            let a = Double(i) / 120 * 2 * .pi
+            let c = cos(a), s = sin(a) // s > 0 is the bottom half
+            let n = s > 0 ? 3.4 : 1.9, ry = s > 0 ? 1 - cy : cy
+            let x = 0.5 + 0.5 * copysign(pow(abs(c), 2 / n), c)
+            let y = cy + ry * copysign(pow(abs(s), 2 / n), s)
+            let pt = CGPoint(x: r.minX + x * r.width, y: r.minY + y * r.height)
+            if i == 0 { p.move(to: pt) } else { p.addLine(to: pt) }
+        }
+        p.closeSubpath()
+        return p
+    }
+}
+
 struct Buddy: View {
     var excited: Bool
     var body: some View {
@@ -22,10 +41,10 @@ struct Buddy: View {
             GeometryReader { g in
                 let w = g.size.width, h = g.size.height
                 ZStack(alignment: .topLeading) {
-                    Ellipse()
+                    Mochi()
                         .fill(RadialGradient(colors: [Theme.core, Theme.core, Theme.sky, Theme.sky.opacity(0.75)],
                                              center: UnitPoint(x: 0.45, y: 0.55), startRadius: 0, endRadius: w * 0.6))
-                        .overlay(Ellipse().stroke(.white.opacity(0.55), lineWidth: max(1, w * 0.035)))
+                        .overlay(Mochi().stroke(.white.opacity(0.55), lineWidth: max(1, w * 0.035)))
                     eye(w, h, t, phase: 0).position(x: w * 0.31, y: h * 0.56)
                     eye(w, h, t, phase: .pi).position(x: w * 0.69, y: h * 0.48)
                 }
