@@ -58,9 +58,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         if key == lastEyes { return }
         lastEyes = key
         let h: CGFloat = 26 // fills the (notch-height) menu bar
-        b.image = NSImage(size: NSSize(width: (h * CloudArt.aspect).rounded(), height: h), flipped: true) { r in
+        let beam: CGFloat = 0.3 // a shorter beam than the artwork's, so the cloud stays readable at this size
+        b.image = NSImage(size: NSSize(width: (h * CloudArt.aspect(beam: beam)).rounded(), height: h), flipped: true) { r in
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
-            CloudArt.draw(ctx, in: r.insetBy(dx: 0, dy: 1.5), t: t, excited: excited)
+            CloudArt.draw(ctx, in: r, t: t, excited: excited, beam: beam)
             return true
         }
     }

@@ -1,43 +1,72 @@
 import CoreGraphics
 import Foundation
 
-/// The character: a black cloud with one eye (vector version of assets/character.png).
-/// Drawn with CoreGraphics so the menu bar icon and the SwiftUI views share one drawing, and the eye can
-/// blink and look around. All drawing assumes a top-left origin (flipped) context.
+/// The character: a black cloud with one eye and a beam of light from the eye (vector version of
+/// assets/character.png, proportions measured from it). Drawn with CoreGraphics so the menu bar icon and the
+/// SwiftUI views share one drawing, and the eye can blink and look around. Assumes a top-left origin context.
 enum CloudArt {
-    static let aspect: CGFloat = 930.0 / 595.0 // width / height of the cloud
+    /// Width / height of the cloud alone (931 × 587 px in the artwork).
+    static let cloudAspect: CGFloat = 931.0 / 587.0
+    /// The full artwork's beam reaches 0.49 cloud-heights below the cloud.
+    static let fullBeam: CGFloat = 0.49
+    /// Width / height of the whole drawing with a beam `beam` cloud-heights long.
+    static func aspect(beam: CGFloat = fullBeam) -> CGFloat { cloudAspect / (1 + beam) }
 
-    /// Draws the character filling `r`. `excited`: the eye goes wide and rolls around while the cloud hops.
-    static func draw(_ ctx: CGContext, in rect: CGRect, t: Double, excited: Bool) {
+    /// Draws the character filling `rect` (whose shape should be `aspect(beam:)`).
+    /// `excited`: the eye goes wide and rolls around while the cloud hops.
+    static func draw(_ ctx: CGContext, in rect: CGRect, t: Double, excited: Bool, beam: CGFloat = fullBeam) {
         var r = rect
         if excited { // hop inside the rect so nothing gets clipped
             r = rect.insetBy(dx: rect.width * 0.05, dy: rect.height * 0.05)
             r.origin.y -= abs(sin(t * 9)) * rect.height * 0.05
         }
-        let w = r.width, h = r.height
+        // Unit: x in cloud widths, y in cloud heights, origin at the cloud's top-left.
+        let w = r.width, h = r.width / cloudAspect
         func P(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: r.minX + x * w, y: r.minY + y * h) }
 
-        // Cloud: three puffs and a flat base, merged into one outline.
-        var cloud = CGPath(rect: CGRect(origin: P(0.242, 0.387), size: CGSize(width: 0.543 * w, height: 0.603 * h)), transform: nil)
-        for (x, y, rad) in [(0.242, 0.622, 0.242), (0.522, 0.387, 0.247), (0.785, 0.655, 0.215)] as [(CGFloat, CGFloat, CGFloat)] {
+        // Cloud: three round puffs on a straight base line.
+        var cloud = CGPath(rect: CGRect(origin: P(0.2385, 0.3808), size: CGSize(width: (0.7905 - 0.2385) * w, height: (1 - 0.3808) * h)), transform: nil)
+        for (x, y, rad) in [(0.2385, 0.6218, 0.2385), (0.5145, 0.3808, 0.2401), (0.7905, 0.6678, 0.2095)] as [(CGFloat, CGFloat, CGFloat)] {
             let c = P(x, y), rr = rad * w
             cloud = cloud.union(CGPath(ellipseIn: CGRect(x: c.x - rr, y: c.y - rr, width: rr * 2, height: rr * 2), transform: nil))
         }
+
+        // Eye geometry, and the beam that spreads down from the eye's corners.
+        let c = P(0.5005, 0.6065), hw = 0.1847 * w, fullH = 0.155 * h
+        let end = 1 + beam, spread: CGFloat = 0.195 // beam edge: x moves 0.195 widths per cloud height
+        let beamPath = CGMutablePath()
+        beamPath.move(to: CGPoint(x: c.x - hw, y: c.y))
+        beamPath.addLine(to: CGPoint(x: c.x + hw, y: c.y))
+        beamPath.addLine(to: P(0.5005 + 0.1847 + spread * (end - 0.6065), end))
+        beamPath.addLine(to: P(0.5005 - 0.1847 - spread * (end - 0.6065), end))
+        beamPath.closeSubpath()
+
+        // The cloud minus the beam, with a soft grey rim just inside its outer edge.
         ctx.saveGState()
-        ctx.addPath(cloud); ctx.clip()
+        ctx.addPath(cloud.subtracting(beamPath)); ctx.clip()
         ctx.setFillColor(CGColor(gray: 0.02, alpha: 1))
         ctx.fill(r.insetBy(dx: -2, dy: -2))
-        // Soft grey rim just inside the edge, like the artwork's glow.
-        ctx.setShadow(offset: .zero, blur: w * 0.06, color: CGColor(gray: 0.45, alpha: 1))
+        ctx.setShadow(offset: .zero, blur: w * 0.05, color: CGColor(gray: 0.42, alpha: 1))
         ctx.addPath(cloud)
-        ctx.setStrokeColor(CGColor(gray: 0.24, alpha: 1))
-        ctx.setLineWidth(max(0.8, w * 0.018))
+        ctx.setStrokeColor(CGColor(gray: 0.16, alpha: 1))
+        ctx.setLineWidth(max(0.8, w * 0.02))
         ctx.strokePath()
         ctx.restoreGState()
 
-        // Eye: an almond that closes when blinking, with a pupil that follows the gaze.
+        // Beam: black at the eye, fading out toward its end (measured from the artwork).
+        if beam > 0 {
+            ctx.saveGState()
+            ctx.addPath(beamPath); ctx.clip()
+            let alphas: [CGFloat] = [1, 0.9, 0.58, 0.3, 0.12, 0]
+            let beamFade = CGGradient(colorsSpace: CGColorSpaceCreateDeviceGray(),
+                                      colors: alphas.map { CGColor(gray: 0.02, alpha: $0) } as CFArray,
+                                      locations: [0, 0.2, 0.4, 0.6, 0.8, 1])!
+            ctx.drawLinearGradient(beamFade, start: CGPoint(x: c.x, y: c.y), end: P(0.5, end), options: [])
+            ctx.restoreGState()
+        }
+
+        // Eye: a slightly pointed oval (superellipse, n = 1.7) that closes when blinking; the pupil follows the gaze.
         let lid = excited ? 0 : blink(t)
-        let c = P(0.5, 0.597), hw = 0.183 * w, fullH = 0.165 * h
         let hh = fullH * (1 - lid)
         if lid > 0.85 { // closed: a soft curved line
             let p = CGMutablePath()
@@ -51,11 +80,11 @@ enum CloudArt {
             return
         }
         let eye = CGMutablePath()
-        eye.move(to: CGPoint(x: c.x - hw, y: c.y))
-        eye.addCurve(to: CGPoint(x: c.x + hw, y: c.y), control1: CGPoint(x: c.x - hw * 0.45, y: c.y - hh * 1.33),
-                     control2: CGPoint(x: c.x + hw * 0.45, y: c.y - hh * 1.33))
-        eye.addCurve(to: CGPoint(x: c.x - hw, y: c.y), control1: CGPoint(x: c.x + hw * 0.45, y: c.y + hh * 1.33),
-                     control2: CGPoint(x: c.x - hw * 0.45, y: c.y + hh * 1.33))
+        for i in 0..<96 {
+            let a = Double(i) / 96 * 2 * .pi, e = 2 / 1.7
+            let pt = CGPoint(x: c.x + hw * copysign(pow(abs(cos(a)), e), cos(a)), y: c.y + hh * copysign(pow(abs(sin(a)), e), sin(a)))
+            if i == 0 { eye.move(to: pt) } else { eye.addLine(to: pt) }
+        }
         eye.closeSubpath()
         ctx.saveGState()
         ctx.addPath(eye); ctx.clip()
@@ -63,8 +92,8 @@ enum CloudArt {
         let white = CGGradient(colorsSpace: space, colors: [CGColor(gray: 1, alpha: 1), CGColor(gray: 0.8, alpha: 1)] as CFArray, locations: nil)!
         ctx.drawLinearGradient(white, start: CGPoint(x: c.x, y: c.y - fullH), end: CGPoint(x: c.x, y: c.y + fullH), options: [])
         let g = excited ? CGPoint(x: cos(t * 7) * 0.8, y: sin(t * 7) * 0.8) : gaze(t)
-        let pc = CGPoint(x: c.x + g.x * hw * 0.45, y: c.y + g.y * fullH * 0.35)
-        let prx = 0.062 * w, pry = 0.11 * h
+        let pc = CGPoint(x: c.x + g.x * hw * 0.4, y: c.y + g.y * fullH * 0.3)
+        let prx = 0.0623 * w, pry = 0.1107 * h
         // Pupil: black with a soft grey edge.
         ctx.setFillColor(CGColor(gray: 0.38, alpha: 1))
         ctx.fillEllipse(in: CGRect(x: pc.x - prx, y: pc.y - pry, width: prx * 2, height: pry * 2))

@@ -23,7 +23,7 @@ struct Buddy: View {
                 }
             }
         }
-        .aspectRatio(CloudArt.aspect, contentMode: .fit)
+        .aspectRatio(CloudArt.aspect(), contentMode: .fit)
     }
 }
 
@@ -92,7 +92,7 @@ struct ContentView: View {
     private var header: some View {
         HStack(spacing: 12) {
             Buddy(excited: excited)
-                .frame(width: 52, height: 34)
+                .frame(width: 44, height: 42)
                 .shadow(color: .black.opacity(0.25), radius: 4, y: 2)
                 .scaleEffect(bounce ? 1.18 : 1)
                 .rotationEffect(.degrees(bounce ? -8 : 0))
@@ -203,7 +203,7 @@ struct CheerCard: View {
     var body: some View {
         ZStack {
             VStack(spacing: 8) {
-                Buddy(excited: true).frame(width: 66, height: 43)
+                Buddy(excited: true).frame(width: 60, height: 57)
                 Text("전부 끝! 🎉").font(.system(size: 15, weight: .bold, design: .rounded)).foregroundStyle(.white)
                 Text("\(count)개 모두 완료했어요").font(.system(size: 11, weight: .medium, design: .rounded))
                     .foregroundStyle(.white.opacity(0.9))
