@@ -3,9 +3,9 @@
 <img src="docs/character.png" width="88" align="right">
 
 macOS 메뉴바에 상주하는 간단한 투두리스트.
-메뉴바의 파란 캐릭터를 누르면 할 일 목록이 열리고, 옆 숫자는 남은 할 일 개수예요.
+메뉴바의 눈 달린 구름(가끔 눈을 깜빡여요)을 누르면 할 일 목록이 열리고, 옆 숫자는 남은 할 일 개수예요.
 터미널(또는 Claude Code)에서 `todo` 명령으로 추가·완료·삭제하면 앱에 바로 반영됩니다.
-할 일을 전부 끝내면 캐릭터 눈이 통통 뛰고 컨페티가 터져요 🎉
+할 일을 전부 끝내면 구름이 통통 뛰며 눈을 굴리고 컨페티가 터져요 🎉
 
 <p align="center"><img src="docs/celebrate.png" width="300"></p>
 
@@ -86,9 +86,9 @@ Claude Code는 셸 명령을 실행할 수 있어서 그냥 말하면 됩니다.
 ## 구조
 ```
 Sources/Shared/TodoFile.swift   데이터 모델 + 파일 읽기/쓰기 (앱·CLI 공용)
-Sources/App/                    메뉴바 앱 (AppKit + SwiftUI)
+Sources/App/                    메뉴바 앱 (AppKit + SwiftUI), CloudArt.swift = 캐릭터 그리기
 Sources/CLI/main.swift          todo CLI
-tools/make-icons.swift          assets/character.png로 메뉴바·앱 아이콘 생성
+tools/make-icons.swift          assets/character.png로 앱 아이콘 생성 (메뉴바·패널 캐릭터는 Sources/App/CloudArt.swift가 직접 그림)
 ```
 
 ## 라이선스

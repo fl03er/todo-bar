@@ -5,7 +5,7 @@
 #   ./build.sh release   universal build (Apple Silicon + Intel) zipped into dist/
 set -e
 cd "$(dirname "$0")"
-VERSION=1.0.1
+VERSION=1.1.0
 APP=TodoBar.app
 MIN=13.0
 
@@ -16,7 +16,7 @@ B="$STAGE/$APP"
 mkdir -p "$B/Contents/MacOS" "$B/Contents/Resources"
 
 swift tools/make-icons.swift "$STAGE/icons" >/dev/null
-cp "$STAGE/icons/StatusIcon.png" "$STAGE/icons/StatusBody.png" "$STAGE/icons/AppIcon.icns" "$B/Contents/Resources/"
+cp "$STAGE/icons/AppIcon.icns" "$B/Contents/Resources/"
 
 build() { # $1 = output name, rest = sources
   local out=$1; shift
