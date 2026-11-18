@@ -23,7 +23,7 @@ macOS 메뉴바에 상주하는 간단한 투두리스트.
 ### 소스로 빌드
 Xcode Command Line Tools(Swift 5.9+), macOS 13 이상.
 ```bash
-git clone https://github.com/<you>/todo-bar.git && cd todo-bar
+git clone https://github.com/fl03er/todo-bar.git && cd todo-bar
 ./build.sh install     # 빌드 → ~/Applications/TodoBar.app, ~/.local/bin/todo 링크, 실행
 ```
 `./build.sh`는 이 폴더에 앱만 만들고, `./build.sh release`는 유니버설(Apple Silicon + Intel) zip을 `dist/`에 만듭니다.
