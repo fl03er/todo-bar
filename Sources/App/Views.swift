@@ -12,7 +12,7 @@ enum Theme {
 
 // MARK: - Character (vector version of the icon, so its eyes can move)
 
-/// The icon's character (just the blue body, no sky). Idle: blinks now and then.
+/// The icon's character (just the blue body, no sky). Eyes stay still at rest.
 /// `excited`: the eyes hop and glance around.
 struct Buddy: View {
     var excited: Bool
@@ -35,15 +35,12 @@ struct Buddy: View {
     }
 
     private func eye(_ w: CGFloat, _ h: CGFloat, _ t: Double, phase: Double) -> some View {
-        // Blink: squash for ~0.15 s every 4 s.
-        let blink = t.truncatingRemainder(dividingBy: 4) < 0.15 ? 0.12 : 1.0
         // Excited: alternate hops plus a side-to-side glance.
         let hop = excited ? -abs(sin(t * 9 + phase)) * h * 0.1 : 0
         let glance = excited ? sin(t * 3) * w * 0.06 : 0
         return Ellipse()
             .fill(LinearGradient(colors: [.white, Color(red: 0.8, green: 0.92, blue: 1)], startPoint: .top, endPoint: .bottom))
             .frame(width: w * 0.25, height: h * 0.36)
-            .scaleEffect(x: 1, y: excited ? 1 : blink)
             .rotationEffect(.degrees(-12))
             .offset(x: glance, y: hop)
     }
@@ -195,8 +192,6 @@ struct ContentView: View {
                 Button("완료 항목 지우기") { withAnimation { store.clearDone() } }
             }
             Spacer()
-            Button("폴더") { NSWorkspace.shared.activateFileViewerSelecting([TodoFile.url]) }
-                .help(TodoFile.url.path)
             Button("종료") { NSApp.terminate(nil) }
         }
         .buttonStyle(.plain)

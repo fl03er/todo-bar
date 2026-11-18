@@ -90,7 +90,7 @@ func character(height h: Int) -> NSBitmapImageRep {
     NSGraphicsContext.restoreGraphicsState()
     return r
 }
-save(character(height: 66), "StatusIcon.png")
+save(character(height: 84), "StatusIcon.png")
 save(character(height: 400), "Character.png")
 
 // App icon: the rounded square itself, with transparent corners, inside the standard icon margin.

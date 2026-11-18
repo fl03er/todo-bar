@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let b = statusItem.button {
             b.imagePosition = .imageLeft
+            b.imageScaling = .scaleNone // the default shrinks the icon to ~17pt
             b.target = self
             b.action = #selector(togglePopover)
         }
@@ -31,7 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     func loadIcon(_ name: String) -> NSImage? {
         guard let url = Bundle.main.url(forResource: name, withExtension: "png"), let img = NSImage(contentsOf: url) else { return nil }
-        let h: CGFloat = 21 // the character is wider than tall; keep its proportions
+        let h: CGFloat = 26 // fills the (notch-height) menu bar; keep proportions
         img.size = NSSize(width: (h * img.size.width / max(img.size.height, 1)).rounded(), height: h)
         return img
     }
