@@ -54,14 +54,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         let t = Date().timeIntervalSinceReferenceDate
         let excited = Date() < excitedUntil
         let g = CloudArt.gaze(t), lid = CloudArt.blink(t)
-        let key = excited ? "\(t)" : String(format: "%.2f %.2f %.2f", g.x, g.y, lid)
+        let asleep = !excited && store.remaining == 0 // nothing left to do: the cloud sleeps
+        let key = excited ? "\(t)" : asleep ? "asleep" : String(format: "%.2f %.2f %.2f", g.x, g.y, lid)
         if key == lastEyes { return }
         lastEyes = key
         let h: CGFloat = 26 // fills the (notch-height) menu bar
         let beam: CGFloat = 0.3 // a shorter beam than the artwork's, so the cloud stays readable at this size
         b.image = NSImage(size: NSSize(width: (h * CloudArt.aspect(beam: beam)).rounded(), height: h), flipped: true) { r in
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
-            CloudArt.draw(ctx, in: r, t: t, excited: excited, beam: beam)
+            CloudArt.draw(ctx, in: r, t: t, excited: excited, asleep: asleep, beam: beam)
             return true
         }
     }

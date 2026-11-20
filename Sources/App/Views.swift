@@ -12,14 +12,15 @@ enum Theme { // purple, like the character's background
 // MARK: - Character
 
 /// The cloud with one eye (see CloudArt). At rest it blinks now and then and looks around;
-/// `excited`: the eye goes wide and rolls while the cloud hops.
+/// `excited`: the eye goes wide and rolls while the cloud hops. `asleep`: eye shut, no beam (nothing left to do).
 struct Buddy: View {
     var excited: Bool
+    var asleep = false
     var body: some View {
         TimelineView(.animation) { tl in
             Canvas { ctx, size in
                 ctx.withCGContext { cg in
-                    CloudArt.draw(cg, in: CGRect(origin: .zero, size: size), t: tl.date.timeIntervalSinceReferenceDate, excited: excited)
+                    CloudArt.draw(cg, in: CGRect(origin: .zero, size: size), t: tl.date.timeIntervalSinceReferenceDate, excited: excited, asleep: asleep)
                 }
             }
         }
@@ -91,7 +92,7 @@ struct ContentView: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            Buddy(excited: excited)
+            Buddy(excited: excited, asleep: store.remaining == 0 && !excited)
                 .frame(width: 44, height: 42)
                 .shadow(color: .black.opacity(0.25), radius: 4, y: 2)
                 .scaleEffect(bounce ? 1.18 : 1)

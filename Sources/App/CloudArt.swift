@@ -14,7 +14,8 @@ enum CloudArt {
 
     /// Draws the character filling `rect` (whose shape should be `aspect(beam:)`).
     /// `excited`: the eye goes wide and rolls around while the cloud hops.
-    static func draw(_ ctx: CGContext, in rect: CGRect, t: Double, excited: Bool, beam: CGFloat = fullBeam) {
+    /// `asleep`: the eye stays shut and the beam (the eye's light) goes out; the space it takes stays the same.
+    static func draw(_ ctx: CGContext, in rect: CGRect, t: Double, excited: Bool, asleep: Bool = false, beam: CGFloat = fullBeam) {
         var r = rect
         if excited { // hop inside the rect so nothing gets clipped
             r = rect.insetBy(dx: rect.width * 0.05, dy: rect.height * 0.05)
@@ -43,7 +44,7 @@ enum CloudArt {
 
         // The cloud minus the beam, with a soft grey rim just inside its outer edge.
         ctx.saveGState()
-        ctx.addPath(cloud.subtracting(beamPath)); ctx.clip()
+        ctx.addPath(asleep ? cloud : cloud.subtracting(beamPath)); ctx.clip()
         ctx.setFillColor(CGColor(gray: 0.02, alpha: 1))
         ctx.fill(r.insetBy(dx: -2, dy: -2))
         ctx.setShadow(offset: .zero, blur: w * 0.05, color: CGColor(gray: 0.42, alpha: 1))
@@ -54,7 +55,7 @@ enum CloudArt {
         ctx.restoreGState()
 
         // Beam: black at the eye, fading out toward its end (measured from the artwork).
-        if beam > 0 {
+        if beam > 0 && !asleep {
             ctx.saveGState()
             ctx.addPath(beamPath); ctx.clip()
             let alphas: [CGFloat] = [1, 0.9, 0.58, 0.3, 0.12, 0]
@@ -66,7 +67,7 @@ enum CloudArt {
         }
 
         // Eye: a slightly pointed oval (superellipse, n = 1.7) that closes when blinking; the pupil follows the gaze.
-        let lid = excited ? 0 : blink(t)
+        let lid = excited ? 0 : asleep ? 1 : blink(t)
         let hh = fullH * (1 - lid)
         if lid > 0.85 { // closed: a soft curved line
             let p = CGMutablePath()
