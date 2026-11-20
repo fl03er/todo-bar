@@ -70,8 +70,7 @@ enum CloudArt {
         let lid = excited ? 0 : asleep ? 1 : blink(t)
         let hh = fullH * (1 - lid)
 
-        // Eyelashes (속눈썹): three curved lashes fanned out along the upper lid, bending toward the outer edge.
-        // They ride the lid down when blinking; with the eye shut they hang down from the closed line.
+        // Eyelashes (속눈썹): three curved lashes that show only while the eye is shut, hanging from the closed line.
         func lashes() {
             let len = fullH * (excited ? 1.0 : 0.8), shut = lid > 0.85
             ctx.setStrokeColor(CGColor(gray: 0.9, alpha: 1))
@@ -131,7 +130,6 @@ enum CloudArt {
         let k: CGFloat = 0.82
         ctx.fillEllipse(in: CGRect(x: pc.x - prx * k, y: pc.y - pry * k, width: prx * 2 * k, height: pry * 2 * k))
         ctx.restoreGState()
-        lashes()
     }
 
     private static func rand(_ n: Int, _ salt: Double) -> Double { // stable pseudo-random 0..<1
