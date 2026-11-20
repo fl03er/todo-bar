@@ -28,7 +28,7 @@ git clone https://github.com/fl03er/todo-bar.git && cd todo-bar
 ```
 `./build.sh`는 이 폴더에 앱만 만들고, `./build.sh release`는 유니버설(Apple Silicon + Intel) zip을 `dist/`에 만듭니다.
 
-로그인 시 자동 실행: 시스템 설정 → 일반 → 로그인 항목 → TodoBar 추가.
+로그인 시 자동 실행: 처음 켜면 로그인 항목에 자동으로 등록돼요. 끄려면 패널 아래의 「로그인 시 실행」을 누르거나, 시스템 설정 → 일반 → 로그인 항목에서 빼면 됩니다.
 
 ## 메뉴바에서
 - **추가**: 맨 위 입력칸에 적고 ⏎

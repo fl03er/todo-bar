@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     var excitedUntil = Date.distantPast
 
     func applicationDidFinishLaunching(_ note: Notification) {
+        LoginItem.enableOnFirstRun()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let b = statusItem.button {
             b.imagePosition = .imageLeft

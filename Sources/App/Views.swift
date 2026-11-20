@@ -70,6 +70,7 @@ struct ContentView: View {
     @State private var bounce = false
     @State private var excited = false
     @FocusState private var inputFocused: Bool
+    @State private var launchAtLogin = LoginItem.isOn
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -174,7 +175,11 @@ struct ContentView: View {
                 Button("완료 항목 지우기") { withAnimation { store.clearDone() } }
             }
             Spacer()
-            Button("종료") { NSApp.terminate(nil) }
+            Button(launchAtLogin ? "☑ 로그인 시 실행" : "☐ 로그인 시 실행") {
+                if LoginItem.set(!launchAtLogin) { launchAtLogin.toggle() }
+            }
+            .help("로그인하면 TodoBar를 자동으로 켭니다")
+            Button("종료") { NSApp.terminate(nil) }.padding(.leading, 10)
         }
         .buttonStyle(.plain)
         .font(.system(size: 11, weight: .medium))
