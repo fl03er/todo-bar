@@ -66,6 +66,20 @@ enum CloudArt {
             ctx.restoreGState()
         }
 
+        // Eyebrow: an arch above the eye. It lifts when excited, dips a little when blinking, and relaxes when asleep.
+        let blinkNow = excited ? 0 : asleep ? 1 : blink(t)
+        let lift = excited ? -(0.05 + 0.03 * abs(sin(t * 9))) * h : blinkNow * (asleep ? 0.075 : 0.035) * h
+        let by = c.y - fullH * 1.85 + lift, bw = hw * 0.92
+        let brow = CGMutablePath()
+        brow.move(to: CGPoint(x: c.x - bw, y: by + fullH * 0.28 - (asleep ? 0 : fullH * 0.08)))
+        brow.addQuadCurve(to: CGPoint(x: c.x + bw, y: by + fullH * 0.28 - (asleep ? 0 : fullH * 0.08)),
+                          control: CGPoint(x: c.x, y: by - fullH * (asleep ? 0.2 : 0.38)))
+        ctx.addPath(brow)
+        ctx.setStrokeColor(CGColor(gray: 0.9, alpha: 1))
+        ctx.setLineWidth(max(1, w * 0.026))
+        ctx.setLineCap(.round)
+        ctx.strokePath()
+
         // Eye: a slightly pointed oval (superellipse, n = 1.7) that closes when blinking; the pupil follows the gaze.
         let lid = excited ? 0 : asleep ? 1 : blink(t)
         let hh = fullH * (1 - lid)
