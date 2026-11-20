@@ -66,22 +66,36 @@ enum CloudArt {
             ctx.restoreGState()
         }
 
-        // Eyebrow: an arch above the eye. It lifts when excited, dips a little when blinking, and relaxes when asleep.
-        let blinkNow = excited ? 0 : asleep ? 1 : blink(t)
-        let lift = excited ? -(0.05 + 0.03 * abs(sin(t * 9))) * h : blinkNow * (asleep ? 0.04 : 0.025) * h
-        let by = c.y - fullH * 2.1 + lift, bw = hw * 0.62
-        let brow = CGMutablePath() // a straight bar, a bit shorter than the eye so it doesn't read as a double eyelid
-        brow.move(to: CGPoint(x: c.x - bw, y: by))
-        brow.addLine(to: CGPoint(x: c.x + bw, y: by))
-        ctx.addPath(brow)
-        ctx.setStrokeColor(CGColor(gray: 0.9, alpha: 1))
-        ctx.setLineWidth(max(1.2, w * 0.03))
-        ctx.setLineCap(.round)
-        ctx.strokePath()
-
         // Eye: a slightly pointed oval (superellipse, n = 1.7) that closes when blinking; the pupil follows the gaze.
         let lid = excited ? 0 : asleep ? 1 : blink(t)
         let hh = fullH * (1 - lid)
+
+        // Eyelashes (속눈썹): three curved lashes fanned out along the upper lid, bending toward the outer edge.
+        // They ride the lid down when blinking; with the eye shut they hang down from the closed line.
+        func lashes() {
+            let len = fullH * (excited ? 1.0 : 0.8), shut = lid > 0.85
+            ctx.setStrokeColor(CGColor(gray: 0.9, alpha: 1))
+            ctx.setLineWidth(max(1, w * 0.022))
+            ctx.setLineCap(.round)
+            for u in [-0.62, 0.0, 0.62] as [CGFloat] {
+                let base: CGPoint
+                if shut { // on the closed line: x = ±0.9·hw·u', y of the quadratic curve
+                    let sx = (u / 0.62 * 0.62 * 0.9 + 1) / 2
+                    base = CGPoint(x: c.x + u * hw * 0.9, y: c.y + 2 * sx * (1 - sx) * fullH * 0.35)
+                } else { // on the upper edge of the eye outline
+                    base = CGPoint(x: c.x + u * hw, y: c.y - hh * pow(max(0, 1 - pow(abs(u), 1.7)), 1 / 1.7))
+                }
+                let dir: CGFloat = shut ? 1 : -1 // down when asleep, up otherwise
+                let lean = u * 0.55 // outer lashes lean outward
+                let tip = CGPoint(x: base.x + lean * len + u * len * 0.15, y: base.y + dir * len)
+                let ctl = CGPoint(x: base.x + lean * len * 0.1, y: base.y + dir * len * 0.6)
+                let path = CGMutablePath()
+                path.move(to: base)
+                path.addQuadCurve(to: tip, control: ctl)
+                ctx.addPath(path)
+                ctx.strokePath()
+            }
+        }
         if lid > 0.85 { // closed: a soft curved line
             let p = CGMutablePath()
             p.move(to: CGPoint(x: c.x - hw * 0.9, y: c.y))
@@ -91,6 +105,7 @@ enum CloudArt {
             ctx.setLineWidth(max(1, w * 0.02))
             ctx.setLineCap(.round)
             ctx.strokePath()
+            lashes()
             return
         }
         let eye = CGMutablePath()
@@ -116,6 +131,7 @@ enum CloudArt {
         let k: CGFloat = 0.82
         ctx.fillEllipse(in: CGRect(x: pc.x - prx * k, y: pc.y - pry * k, width: prx * 2 * k, height: pry * 2 * k))
         ctx.restoreGState()
+        lashes()
     }
 
     private static func rand(_ n: Int, _ salt: Double) -> Double { // stable pseudo-random 0..<1

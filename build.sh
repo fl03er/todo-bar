@@ -5,7 +5,7 @@
 #   ./build.sh release   universal build (Apple Silicon + Intel) zipped into dist/
 set -e
 cd "$(dirname "$0")"
-VERSION=1.4.1
+VERSION=1.5.0
 APP=TodoBar.app
 MIN=13.0
 
