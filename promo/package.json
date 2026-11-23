@@ -1,0 +1,6 @@
+{
+  "name": "todobar_sync_video",
+  "private": true,
+  "type": "module",
+  "dependencies": { "puppeteer-core": "^23.11.1" }
+}

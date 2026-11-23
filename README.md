@@ -83,6 +83,11 @@ Claude Code는 셸 명령을 실행할 수 있어서 그냥 말하면 됩니다.
   ```
 - 앱과 CLI는 잠금(`.lock`)을 걸고 원자적으로 저장하므로 동시에 바꿔도 서로의 변경을 잃지 않아요. JSON이 깨져 있으면 아무도 덮어쓰지 않고, 앱은 패널에 오류를 보여줍니다.
 
+## 아이폰 미리알림 동기화
+앱이 Apple 미리알림(EventKit)의 `TodoBar` 목록과 양방향으로 맞춰요. iCloud가 그 목록을 아이폰까지 전달합니다.
+`~/.todo-bar/sync.json`에 "마지막 동기화 때의 모습"을 기억해 두고, Mac·기준·미리알림 세 곳을 비교해 바뀐 쪽을 반대편에 반영해요 (둘 다 바뀌면 Mac 우선).
+동작 원리 영상(영어): [docs/sync-mechanism.mp4](docs/sync-mechanism.mp4) · 영상 소스는 [`promo/`](promo)에 있어요.
+
 ## 구조
 ```
 Sources/Shared/TodoFile.swift   데이터 모델 + 파일 읽기/쓰기 (앱·CLI 공용)

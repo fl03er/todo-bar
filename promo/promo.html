@@ -1,0 +1,464 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>TodoBar × Reminders sync</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Apple SD Gothic Neo", "Helvetica Neue", sans-serif; -webkit-font-smoothing: antialiased; }
+  :root { --purple: #6e56ff; --purple2: #a78bfa; --ink: #1d1d1f; --mute: #6e6e73; --blue: #0a84ff; --green: #30b455; --orange: #ff9f0a; }
+  #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #f5f5f7; }
+  .scene { position: absolute; inset: 0; opacity: 0; will-change: opacity, transform; }
+  .light { background: #f5f5f7; color: var(--ink); }
+  .lav { background: radial-gradient(ellipse at 50% 38%, #fbf9ff 0%, #e7defc 60%, #d6c8fa 100%); color: var(--ink); }
+  .dark { background: #0c0a16; color: #f5f5f7; }
+  .abs { position: absolute; }
+  .h1 { position: absolute; left: 0; right: 0; text-align: center; font-weight: 700; letter-spacing: -0.025em; }
+  .sub { position: absolute; left: 0; right: 0; text-align: center; color: var(--mute); font-size: 30px; font-weight: 400; letter-spacing: -0.01em; }
+  .card { position: absolute; background: #fff; border-radius: 28px; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 12px 40px rgba(0,0,0,.07); }
+  .mono { font-family: "SF Mono", Menlo, monospace; }
+  .pill { position: absolute; left: 50%; transform: translateX(-50%); padding: 18px 44px; border-radius: 999px; background: var(--purple); color: #fff; font-size: 34px; font-weight: 600; font-family: "SF Mono", Menlo, monospace; white-space: nowrap; }
+
+  /* pipeline nodes */
+  .node { position: absolute; top: 430px; width: 240px; height: 230px; background: #fff; border-radius: 28px; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 12px 40px rgba(0,0,0,.07); text-align: center; border: 3px solid transparent; }
+  .node .ico { font-size: 62px; margin-top: 28px; height: 76px; }
+  .node .t { font-size: 29px; font-weight: 700; margin-top: 8px; letter-spacing: -0.02em; }
+  .node .d { font-size: 20px; color: var(--mute); margin-top: 8px; font-family: "SF Mono", Menlo, monospace; }
+  .node.hot { border-color: var(--purple); box-shadow: 0 0 0 10px rgba(110,86,255,.12), 0 12px 40px rgba(110,86,255,.2); }
+  .link { position: absolute; top: 543px; height: 6px; border-radius: 3px; background: #dcdce2; }
+  .link .f { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 3px; background: var(--purple); }
+  .packet { position: absolute; top: 518px; height: 56px; border-radius: 28px; background: var(--purple); color: #fff; font-size: 24px; font-weight: 600; display: flex; align-items: center; padding: 0 24px; box-shadow: 0 8px 26px rgba(110,86,255,.45); white-space: nowrap; }
+  .brace { position: absolute; top: 700px; height: 8px; border-radius: 4px; }
+  .bl { position: absolute; top: 726px; text-align: center; font-size: 26px; font-weight: 600; }
+
+  /* triggers */
+  .trig { position: absolute; left: 150px; width: 560px; height: 220px; background: #fff; border-radius: 28px; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 12px 40px rgba(0,0,0,.07); padding: 34px 40px; }
+  .trig .k { font-size: 20px; font-weight: 600; letter-spacing: .04em; color: var(--purple); }
+  .trig .t { font-size: 38px; font-weight: 700; letter-spacing: -0.02em; margin-top: 8px; }
+  .trig .d { font-size: 22px; color: var(--mute); margin-top: 14px; line-height: 1.45; }
+  .tl { position: absolute; left: 780px; top: 400px; width: 1000px; height: 420px; background: #fff; border-radius: 28px; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 12px 40px rgba(0,0,0,.07); }
+  .tick { position: absolute; width: 8px; border-radius: 4px; background: var(--purple); }
+  .win { position: absolute; border-radius: 14px; background: rgba(110,86,255,.14); border: 3px dashed rgba(110,86,255,.5); }
+  .chip { position: absolute; padding: 14px 30px; border-radius: 16px; font-size: 28px; font-weight: 700; color: #fff; background: var(--green); white-space: nowrap; }
+
+  /* three-way */
+  .col { position: absolute; top: 360px; width: 520px; height: 430px; border-radius: 28px; padding: 30px 34px; }
+  .col .ct { font-size: 22px; font-weight: 600; letter-spacing: .03em; }
+  .col .cs { font-size: 26px; font-weight: 700; margin-top: 6px; letter-spacing: -0.01em; }
+  .row { position: absolute; left: 34px; right: 34px; top: 150px; height: 92px; border-radius: 18px; background: rgba(255,255,255,.08); display: flex; align-items: center; padding: 0 24px; gap: 20px; font-size: 32px; font-weight: 500; transition: none; }
+  .box { width: 36px; height: 36px; border-radius: 50%; border: 3px solid #8e8e93; flex: none; position: relative; }
+  .box.on { background: var(--purple2); border-color: var(--purple2); }
+  .box.on::after { content: ""; position: absolute; left: 10px; top: 4px; width: 9px; height: 17px; border: solid #fff; border-width: 0 4px 4px 0; transform: rotate(45deg); }
+  .json { position: absolute; left: 34px; right: 34px; top: 262px; font-family: "SF Mono", Menlo, monospace; font-size: 21px; line-height: 1.55; color: #b9b3d6; }
+  .status { position: absolute; left: 0; right: 0; top: 850px; text-align: center; font-size: 36px; font-weight: 700; letter-spacing: -0.02em; }
+
+  /* rules table */
+  .rule { position: absolute; left: 160px; width: 1600px; height: 96px; background: #fff; border-radius: 22px; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 28px rgba(0,0,0,.06); display: flex; align-items: center; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; }
+  .rule .a { width: 700px; padding-left: 44px; display: flex; align-items: center; gap: 18px; }
+  .rule .arr { width: 120px; text-align: center; font-size: 38px; color: #b0b0b8; }
+  .rule .b { flex: 1; color: var(--ink); }
+  .tag { font-size: 20px; font-weight: 700; padding: 6px 16px; border-radius: 10px; color: #fff; }
+  .tag.mac { background: var(--purple); } .tag.ph { background: var(--blue); }
+
+  /* demo */
+  .phone { position: absolute; width: 400px; height: 800px; border-radius: 64px; background: #111; padding: 14px; box-shadow: 0 40px 90px rgba(0,0,0,.28); }
+  .phone .scr { position: absolute; inset: 14px; border-radius: 52px; background: #f2f2f7; overflow: hidden; }
+  .phone .isl { position: absolute; left: 50%; top: 16px; transform: translateX(-50%); width: 120px; height: 34px; border-radius: 20px; background: #000; z-index: 3; }
+  .ph-h { position: absolute; left: 28px; top: 96px; font-size: 40px; font-weight: 800; color: #6e56ff; letter-spacing: -0.02em; }
+  .ph-n { position: absolute; left: 28px; top: 150px; font-size: 20px; color: #8e8e93; }
+  .pr { position: absolute; left: 20px; right: 20px; height: 82px; background: #fff; border-radius: 18px; display: flex; align-items: center; padding: 0 22px; gap: 18px; font-size: 25px; font-weight: 500; }
+  .pr .box { width: 32px; height: 32px; border-color: #c7c7cc; }
+  .pr .box.on { background: var(--blue); border-color: var(--blue); }
+  .pr .box.on::after { left: 9px; top: 3px; width: 8px; height: 15px; border-width: 0 3.5px 3.5px 0; }
+  .macwin { position: absolute; width: 800px; background: #1c1c1f; border-radius: 26px; box-shadow: 0 30px 80px rgba(0,0,0,.28); }
+  .mrow { position: absolute; left: 32px; right: 32px; height: 78px; border-radius: 16px; background: rgba(255,255,255,.07); display: flex; align-items: center; padding: 0 22px; gap: 20px; color: #f5f5f7; font-size: 28px; font-weight: 500; }
+  .term { position: absolute; background: #0f0f12; color: #e5e5ea; border-radius: 18px; padding: 24px 34px; font-family: "SF Mono", Menlo, monospace; font-size: 30px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+  .term .g { color: #30d158; }
+  .cloudbtn { position: absolute; display: flex; align-items: center; gap: 12px; color: #f5f5f7; font-size: 28px; font-weight: 600; }
+  .cloudbtn img { width: 50px; height: 50px; border-radius: 12px; }
+  .dot { position: absolute; width: 26px; height: 26px; border-radius: 50%; background: var(--purple); box-shadow: 0 0 0 10px rgba(110,86,255,.25), 0 0 30px rgba(110,86,255,.8); }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- 1. Title -->
+  <section class="scene lav" id="s1">
+    <img id="s1img" class="abs" src="assets/character.png" style="left:760px; top:100px; width:400px; border-radius:22%; box-shadow:0 30px 80px rgba(110,86,255,.35);">
+    <div class="h1" id="s1brand" style="top:560px; font-size:28px; font-weight:600; letter-spacing:.02em; color:#6e56ff;">TODOBAR</div>
+    <div class="h1" id="s1title" style="top:610px; font-size:112px; line-height:1.15;">From your menu bar<br>to your iPhone</div>
+    <div class="sub" id="s1sub" style="top:880px; font-size:36px;">How the two-way sync with Apple Reminders works</div>
+  </section>
+
+  <!-- 2. Pipeline -->
+  <section class="scene light" id="s2">
+    <div class="h1" id="s2title" style="top:120px; font-size:84px;">It never talks to iCloud directly.</div>
+    <div class="sub" id="s2sub" style="top:238px;">It only writes to Reminders on the Mac (EventKit). iCloud carries it the rest of the way.</div>
+    <div id="s2nodes"></div>
+    <div class="brace" id="s2b1" style="left:85px; width:1112px; background:#6e56ff;"></div>
+    <div class="bl" id="s2l1" style="left:85px; width:1112px; color:#6e56ff;">Inside your Mac</div>
+    <div class="brace" id="s2b2" style="left:1259px; width:576px; background:#0a84ff;"></div>
+    <div class="bl" id="s2l2" style="left:1259px; width:576px; color:#0a84ff;">Handled by Apple</div>
+    <div class="packet" id="s2pk"></div>
+    <div class="sub mono" id="s2code" style="top:880px; font-size:26px; color:#8e8e93;">EKEventStore · EKReminder · a "TodoBar" list created in your iCloud account</div>
+  </section>
+
+  <!-- 3. Triggers -->
+  <section class="scene light" id="s3">
+    <div class="h1" id="s3title" style="top:120px; font-size:84px;">When does it sync?</div>
+    <div class="sub" id="s3sub" style="top:238px;">Either side can trigger it, and bursts are merged into one run.</div>
+    <div class="trig" id="s3a" style="top:400px;"><div class="k">TRIGGER 1 · MAC</div><div class="t">todos.json changes</div><div class="d">Saved from the panel or the <span class="mono">todo</span> CLI<br><span class="mono">store.onChange</span> → <span class="mono">sync.request()</span></div></div>
+    <div class="trig" id="s3b" style="top:640px;"><div class="k">TRIGGER 2 · IPHONE</div><div class="t">Reminders changes</div><div class="d">An edit made on the phone arrives via iCloud<br>and fires <span class="mono">EKEventStoreChanged</span></div></div>
+    <div class="tl" id="s3tl">
+      <div class="abs" style="left:36px; top:28px; font-size:22px; font-weight:600; color:#8e8e93; letter-spacing:.04em;">TIMELINE</div>
+      <div id="s3ticks"></div>
+      <div class="win" id="s3win" style="top:150px; height:130px;"></div>
+      <div class="abs" id="s3wl" style="top:292px; font-size:22px; color:var(--purple); font-weight:600; white-space:nowrap;">0.6 s debounce · every new event resets the timer</div>
+      <div class="abs" id="s3play" style="top:90px; width:3px; height:230px; background:#1d1d1f; opacity:.55;"></div>
+      <div class="chip" id="s3run" style="top:332px;">run() — one sync</div>
+      <div class="abs" id="s3cap" style="left:36px; top:352px; font-size:26px; font-weight:700; color:#1d1d1f;">4 events → 1 run</div>
+    </div>
+  </section>
+
+  <!-- 4. Three-way -->
+  <section class="scene dark" id="s4">
+    <div class="h1" id="s4title" style="top:110px; font-size:80px; color:#fff;">How does it know who changed?</div>
+    <div class="sub" id="s4sub" style="top:222px; color:#a1a1a6;">sync.json remembers how things looked at the last sync. Compare all three and the changed side shows.</div>
+    <div class="col" id="s4A" style="left:140px; background:#18152a; border:2px solid #2d2750;"><div class="ct" style="color:#a78bfa;">MAC</div><div class="cs">todos.json</div><div class="row" id="s4Ar"><div class="box" id="s4Ab"></div><span id="s4At">Buy milk</span></div></div>
+    <div class="col" id="s4B" style="left:700px; background:#201a3d; border:2px solid #6e56ff;"><div class="ct" style="color:#c4b5fd;">BASE · LAST SYNC</div><div class="cs">sync.json</div><div class="row" id="s4Br"><div class="box" id="s4Bb"></div><span id="s4Bt">Buy milk</span></div>
+      <div class="json" id="s4Bj"></div></div>
+    <div class="col" id="s4C" style="left:1260px; background:#18152a; border:2px solid #2d2750;"><div class="ct" style="color:#64b5ff;">IPHONE</div><div class="cs">Reminders "TodoBar"</div><div class="row" id="s4Cr"><div class="box" id="s4Cb"></div><span id="s4Ct">Buy milk</span></div></div>
+    <div class="abs" id="s4arr1" style="left:660px; top:560px; width:100px; text-align:center; font-size:60px; color:#a78bfa; opacity:0;">→</div>
+    <div class="status" id="s4st" style="color:#fff;"></div>
+  </section>
+
+  <!-- 5. Rules -->
+  <section class="scene light" id="s5">
+    <div class="h1" id="s5title" style="top:90px; font-size:78px;">Whatever changed gets copied to the other side</div>
+    <div id="s5rules"></div>
+    <div class="chip" id="s5note" style="left:50%; transform:translateX(-50%); top:940px; background:#1d1d1f; font-size:30px;">If both changed, the Mac wins</div>
+  </section>
+
+  <!-- 6. Demo -->
+  <section class="scene light" id="s6">
+    <div class="h1" id="s6title" style="top:70px; font-size:72px;">Here it is in action</div>
+    <div class="phone" id="s6phone" style="left:210px; top:200px;">
+      <div class="scr">
+        <div class="isl"></div>
+        <div class="ph-h">TodoBar</div><div class="ph-n" id="s6pn"></div>
+        <div id="s6prows"></div>
+      </div>
+    </div>
+    <div class="term" id="s6term" style="left:830px; top:200px; width:880px;"><span class="g">$</span> <span id="s6cmd"></span><span id="s6caret" style="opacity:.8">▌</span></div>
+    <div class="macwin" id="s6mac" style="left:830px; top:330px; height:420px;">
+      <div class="cloudbtn" style="left:32px; top:26px;"><img src="assets/character.png"><span id="s6cnt">2 left</span></div>
+      <div id="s6mrows"></div>
+    </div>
+    <div class="dot" id="s6dot"></div>
+    <div class="sub" id="s6cap" style="left:830px; right:90px; text-align:left; top:800px; font-size:34px; color:#1d1d1f; font-weight:600;"></div>
+  </section>
+
+  <!-- 7. End -->
+  <section class="scene lav" id="s7">
+    <img id="s7img" class="abs" src="assets/character.png" style="left:810px; top:130px; width:300px; border-radius:22%; box-shadow:0 24px 60px rgba(110,86,255,.35);">
+    <div class="h1" id="s7title" style="top:470px; font-size:118px;">TodoBar</div>
+    <div class="sub" id="s7sub" style="top:618px; font-size:36px; color:#4b3f8f;">EventKit + iCloud · 3-way compare · 0.6 s debounce</div>
+    <div class="sub mono" id="s7files" style="top:700px; font-size:26px; color:#6a5fa8;">Sources/App/ReminderSync.swift</div>
+    <div class="pill" id="s7pill" style="top:810px;">github.com/fl03er/todo-bar</div>
+  </section>
+</div>
+
+<script type="module">
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const eOut = x => 1 - Math.pow(1 - x, 3);
+const eInOut = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const lerp = (a, b, x) => a + (b - a) * x;
+const $ = id => document.getElementById(id);
+function rise(el, t, start, dur = 0.7, dist = 30, base = '') {
+  const x = eOut(seg(t, start, start + dur));
+  el.style.opacity = x;
+  el.style.transform = `${base} translateY(${(1 - x) * dist}px)`;
+}
+const show = (el, on) => { el.style.opacity = on ? 1 : 0; };
+
+const SCENES = [
+  { id: 's1', a: 0.0, b: 4.4 },
+  { id: 's2', a: 4.0, b: 13.0 },
+  { id: 's3', a: 12.6, b: 20.4 },
+  { id: 's4', a: 20.0, b: 29.0 },
+  { id: 's5', a: 28.6, b: 37.4 },
+  { id: 's6', a: 37.0, b: 46.2 },
+  { id: 's7', a: 45.8, b: 50.5 },
+];
+const FADE = 0.4;
+window.DURATION = 50.5;
+
+/* ---- s2 nodes ---- */
+const NODES = [
+  { ico: '⌨️', t: 'CLI · Panel', d: 'todo add …' },
+  { ico: '📄', t: 'todos.json', d: '~/.todo-bar' },
+  { ico: '☁️', t: 'TodoBar app', d: 'ReminderSync', hot: true },
+  { ico: '✅', t: 'Reminders', d: 'EventKit' },
+  { ico: '🔄', t: 'iCloud', d: 'CalDAV' },
+  { ico: '📱', t: 'iPhone', d: 'Reminders app' },
+];
+const NX = i => 85 + i * 302;           // node left
+const NW = 240;
+const nodesEl = $('s2nodes');
+NODES.forEach((n, i) => {
+  const d = document.createElement('div'); d.className = 'node' + (n.hot ? ' hot' : ''); d.id = 'n' + i;
+  d.style.left = NX(i) + 'px';
+  d.innerHTML = `<div class="ico">${n.ico}</div><div class="t">${n.t}</div><div class="d">${n.d}</div>`;
+  nodesEl.appendChild(d);
+  if (i < 5) {
+    const l = document.createElement('div'); l.className = 'link'; l.id = 'lk' + i;
+    l.style.left = (NX(i) + NW) + 'px'; l.style.width = '62px';
+    l.innerHTML = '<div class="f"></div>';
+    nodesEl.appendChild(l);
+  }
+});
+const cx = i => NX(i) + NW / 2;
+
+/* ---- s3 ticks ---- */
+const TICKS = [[1.7, 'a'], [1.95, 'b'], [2.2, 'a'], [2.65, 'b']];
+const TX = t => 60 + (t - 1.3) * 400;       // lt seconds → x in timeline card
+const ticksEl = $('s3ticks');
+TICKS.forEach(([t, w], i) => {
+  const e = document.createElement('div'); e.className = 'tick'; e.id = 'tk' + i;
+  e.style.left = TX(t) + 'px'; e.style.top = '110px'; e.style.height = '170px';
+  e.style.background = w === 'a' ? '#6e56ff' : '#0a84ff';
+  ticksEl.appendChild(e);
+});
+
+/* ---- s5 rules ---- */
+const RULES = [
+  ['mac', 'Edited a to-do (title / done)', 'Overwrites the reminder'],
+  ['ph',  'Edited a reminder', 'Updates todos.json'],
+  ['mac', 'Added a new to-do', 'Creates a new reminder'],
+  ['ph',  'Typed a new reminder', 'Imports it as a to-do (empty titles ignored)'],
+  ['ph',  'Deleted on the phone', 'Deleted on the Mac too'],
+  ['mac', 'Deleted on the Mac (✕ / todo rm)', 'Removed from Reminders too'],
+];
+const rulesEl = $('s5rules');
+RULES.forEach(([who, a, b], i) => {
+  const r = document.createElement('div'); r.className = 'rule'; r.id = 'r' + i; r.style.top = (230 + i * 114) + 'px';
+  r.innerHTML = `<div class="a"><span class="tag ${who}">${who === 'mac' ? 'MAC' : 'IPHONE'}</span>${a}</div><div class="arr">${who === 'mac' ? '→' : '←'}</div><div class="b">${b}</div>`;
+  rulesEl.appendChild(r);
+});
+
+/* ---- s6 demo state ---- */
+const PROWS_Y = i => 200 + i * 96;
+const MROWS_Y = i => 110 + i * 92;
+const ITEMS = ['Write report', 'Workout', 'Groceries'];
+const prowsEl = $('s6prows'), mrowsEl = $('s6mrows');
+ITEMS.forEach((t, i) => {
+  const p = document.createElement('div'); p.className = 'pr'; p.id = 'pr' + i; p.style.top = (PROWS_Y(i) - 24) + 'px';
+  p.innerHTML = `<div class="box" id="pb${i}"></div><span id="pt${i}">${t}</span>`;
+  prowsEl.appendChild(p);
+  const m = document.createElement('div'); m.className = 'mrow'; m.id = 'mr' + i; m.style.top = MROWS_Y(i) + 'px';
+  m.innerHTML = `<div class="box" id="mb${i}"></div><span id="mt${i}">${t}</span>`;
+  mrowsEl.appendChild(m);
+});
+
+/* ---- render ---- */
+window.ready = document.fonts.ready.then(() => Promise.all([...document.images].map(im => im.decode().catch(() => {}))));
+
+window.renderAt = function (t) {
+  for (const s of SCENES) {
+    const el = $(s.id);
+    const vis = t >= s.a && t <= s.b;
+    el.style.display = vis ? 'block' : 'none';
+    if (!vis) continue;
+    const fin = s.a === 0 ? 1 : eOut(seg(t, s.a, s.a + FADE));
+    const fout = s.b >= window.DURATION ? 1 : 1 - seg(t, s.b - FADE, s.b);
+    el.style.opacity = Math.min(fin, fout);
+    el.style.transform = `scale(${1.03 - 0.03 * fin})`;
+    el.style.zIndex = Math.round(s.a * 10);
+  }
+
+  // 1
+  if (t <= 4.4) {
+    const lt = t;
+    const x = eOut(seg(lt, 0, 1));
+    $('s1img').style.opacity = x;
+    $('s1img').style.transform = `translateY(${(1 - x) * 40 + Math.sin(lt * 2.2) * 6}px) scale(${0.9 + 0.1 * x})`;
+    rise($('s1brand'), lt, 0.5, 0.8, 10); rise($('s1title'), lt, 0.7, 0.9, 40); rise($('s1sub'), lt, 1.5, 0.9, 24);
+  }
+
+  // 2 pipeline
+  if (t >= 4.0 && t <= 13.0) {
+    const lt = t - 4.0;
+    rise($('s2title'), lt, 0.2); rise($('s2sub'), lt, 0.45);
+    NODES.forEach((_, i) => rise($('n' + i), lt, 0.8 + i * 0.18, 0.7, 36, ''));
+    for (let i = 0; i < 5; i++) $('lk' + i).style.opacity = eOut(seg(lt, 1.2 + i * 0.18, 1.8 + i * 0.18));
+    rise($('s2b1'), lt, 2.4, 0.6, 0); rise($('s2l1'), lt, 2.5, 0.6, 12);
+    rise($('s2b2'), lt, 2.7, 0.6, 0); rise($('s2l2'), lt, 2.8, 0.6, 12);
+    rise($('s2code'), lt, 3.2, 0.8, 16);
+    // packet: forward 3.6→6.4 ("추가"), backward 6.9→9.0 ("완료")
+    const pk = $('s2pk');
+    let pos = null, label = '';
+    if (lt >= 3.6 && lt <= 6.4) { pos = lerp(0, 5, seg(lt, 3.6, 6.4)); label = '＋ Buy milk'; }
+    else if (lt >= 6.9 && lt <= 8.9) { pos = lerp(5, 2, seg(lt, 6.9, 8.9)); label = '✓ Done'; }
+    const hotNode = pos == null ? -1 : Math.round(pos);
+    for (let i = 0; i < 6; i++) $('n' + i).classList.toggle('hot', i === 2 || (i === hotNode && pos != null && Math.abs(pos - i) < 0.12));
+    for (let i = 0; i < 5; i++) {
+      let f = 0;
+      if (lt >= 3.6 && lt <= 6.4) f = clamp(lerp(0, 5, seg(lt, 3.6, 6.4)) - i);
+      else if (lt > 6.4) f = 1;
+      if (lt >= 6.9) f = clamp(i + 1 - lerp(5, 2, seg(lt, 6.9, 8.9)), 0, 1) >= 0 && i >= 2 ? clamp(1 - (lerp(5, 2, seg(lt, 6.9, 8.9)) <= i + 1 ? clamp(i + 1 - lerp(5, 2, seg(lt, 6.9, 8.9))) : 0)) : f;
+      $('lk' + i).firstChild.style.width = (f * 62) + 'px';
+    }
+    if (pos == null) pk.style.opacity = 0;
+    else {
+      pk.textContent = label; pk.style.opacity = 1;
+      const px = lerp(cx(0), cx(5), pos / 5);
+      pk.style.left = (px - pk.offsetWidth / 2) + 'px';
+      pk.style.background = label.startsWith('✓') ? '#0a84ff' : '#6e56ff';
+    }
+  }
+
+  // 3 triggers
+  if (t >= 12.6 && t <= 20.4) {
+    const lt = t - 12.6;
+    rise($('s3title'), lt, 0.2); rise($('s3sub'), lt, 0.45);
+    rise($('s3a'), lt, 0.7, 0.8, 30); rise($('s3b'), lt, 0.95, 0.8, 30); rise($('s3tl'), lt, 1.0, 0.8, 30);
+    const play = lt < 1.3 ? 0 : clamp(lt - 1.3, 0, 4.2);
+    $('s3play').style.left = TX(1.3 + play) + 'px';
+    $('s3play').style.opacity = seg(lt, 1.2, 1.5) * 0.55;
+    let last = -1;
+    TICKS.forEach(([tt], i) => {
+      const on = lt >= tt;
+      const e = $('tk' + i); e.style.opacity = on ? 1 : 0;
+      e.style.transform = `scaleY(${on ? 1 : 0.2})`;
+      if (on) last = i;
+    });
+    $('s3a').style.boxShadow = (lt >= 1.7 && lt < 2.3) || lt > 2.5 && lt < 2.9 ? '0 0 0 6px rgba(110,86,255,.25), 0 12px 40px rgba(0,0,0,.07)' : '';
+    $('s3b').style.boxShadow = (lt >= 1.95 && lt < 2.4) || (lt >= 2.65 && lt < 3.0) ? '0 0 0 6px rgba(10,132,255,.25), 0 12px 40px rgba(0,0,0,.07)' : '';
+    const win = $('s3win'), wl = $('s3wl');
+    if (last >= 0) {
+      const start = TX(TICKS[last][0]);
+      const endT = Math.min(lt, TICKS[last][0] + 0.6);
+      const first = TICKS[0][0];
+      win.style.opacity = 1;
+      win.style.left = start + 'px';
+      win.style.width = Math.max(0, (TX(Math.min(lt, TICKS[last][0] + 0.6)) - start)) + 'px';
+      wl.style.opacity = seg(lt, 1.7, 2.1);
+      wl.style.left = '60px';
+    } else { win.style.opacity = 0; wl.style.opacity = 0; }
+    const runT = TICKS[3][0] + 0.6; // 3.25
+    const run = $('s3run');
+    const rx = eOut(seg(lt, runT, runT + 0.4));
+    run.style.opacity = rx;
+    run.style.left = '690px'; $('s3cap').style.opacity = rx;
+    run.style.transform = `translateY(${(1 - rx) * 16}px) scale(${0.9 + 0.1 * rx})`;
+  }
+
+  // 4 three-way
+  if (t >= 20.0 && t <= 29.0) {
+    const lt = t - 20.0;
+    rise($('s4title'), lt, 0.2); rise($('s4sub'), lt, 0.45);
+    rise($('s4A'), lt, 0.8, 0.8, 36); rise($('s4B'), lt, 1.0, 0.8, 36); rise($('s4C'), lt, 1.2, 0.8, 36);
+    // state timeline
+    const macDone = lt >= 3.2 && lt < 99;
+    let macText = 'Buy milk', phDone = false, phText = 'Buy milk', baseDone = false, baseText = 'Buy milk';
+    phDone = lt >= 4.4;                       // pushed to reminder
+    baseDone = lt >= 4.9;
+    if (lt >= 6.4) phText = 'Buy milk (2L)';   // typed on phone
+    if (lt >= 7.4) macText = 'Buy milk (2L)';  // pulled to mac
+    if (lt >= 7.8) baseText = 'Buy milk (2L)';
+    const set = (k, done, text) => { $('s4' + k + 'b').className = 'box' + (done ? ' on' : ''); $('s4' + k + 't').textContent = text; };
+    set('A', macDone, macText); set('B', baseDone, baseText); set('C', phDone, phText);
+    $('s4Bj').textContent =
+`{ "1": {
+    "rid": "x-apple-reminder://6F2A…",
+    "text": "${baseText}",
+    "done": ${baseDone},
+    "created": 1763878800
+} }`;
+    const flash = (id, a, b) => { const e = $(id); const k = clamp(1 - Math.abs(t - 20 - (a + b) / 2) / ((b - a) / 2)); e.style.background = `rgba(167,139,250,${0.08 + 0.35 * (lt >= a && lt <= b ? eOut(k) : 0)})`; };
+    flash('s4Ar', 3.1, 3.7); flash('s4Cr', 4.4, 5.0); flash('s4Br', 4.9, 5.4);
+    flash('s4Cr', 6.4, 7.0); flash('s4Ar', 7.4, 8.0); flash('s4Br', 7.8, 8.3);
+    let st = '', col = '#fff';
+    if (lt >= 1.8 && lt < 3.1) { st = 'All three match → nothing to do'; col = '#8e8e93'; }
+    else if (lt >= 3.1 && lt < 4.4) { st = 'Mac ≠ base  →  the Mac changed'; col = '#a78bfa'; }
+    else if (lt >= 4.4 && lt < 6.4) { st = 'Push to Reminders, update the base'; col = '#c4b5fd'; }
+    else if (lt >= 6.4 && lt < 7.4) { st = 'Reminders ≠ base  →  the phone changed'; col = '#64b5ff'; }
+    else if (lt >= 7.4) { st = 'Write to todos.json, update the base'; col = '#64b5ff'; }
+    $('s4st').textContent = st; $('s4st').style.color = col;
+    $('s4st').style.opacity = st ? 1 : 0;
+  }
+
+  // 5 rules
+  if (t >= 28.6 && t <= 37.4) {
+    const lt = t - 28.6;
+    rise($('s5title'), lt, 0.2);
+    RULES.forEach((_, i) => rise($('r' + i), lt, 0.8 + i * 0.7, 0.6, 28));
+    rise($('s5note'), lt, 0.8 + 6 * 0.7 + 0.1, 0.6, 20, 'translateX(-50%)');
+  }
+
+  // 6 demo
+  if (t >= 37.0 && t <= 46.2) {
+    const lt = t - 37.0;
+    rise($('s6title'), lt, 0.2);
+    rise($('s6phone'), lt, 0.5, 0.8, 40); rise($('s6mac'), lt, 0.7, 0.8, 40); rise($('s6term'), lt, 0.9, 0.7, 30);
+    // typing
+    const cmd = 'todo add Groceries';
+    const n = Math.floor(clamp((lt - 1.4) / 0.9) * cmd.length);
+    $('s6cmd').textContent = cmd.slice(0, n);
+    $('s6caret').style.opacity = lt < 2.9 ? (Math.floor(lt * 2.5) % 2 ? 0.2 : 0.9) : 0;
+    const macAdd = lt >= 2.6, phAdd = lt >= 3.6, phCheck = lt >= 5.4, macCheck = lt >= 6.4;
+    for (let i = 0; i < 3; i++) {
+      const isNew = i === 2;
+      const mOn = isNew ? macAdd : 1, pOn = isNew ? phAdd : 1;
+      const mk = isNew ? eOut(seg(lt, 2.6, 3.1)) : 1, pk = isNew ? eOut(seg(lt, 3.6, 4.1)) : 1;
+      $('mr' + i).style.opacity = mk; $('mr' + i).style.transform = `translateX(${(1 - mk) * 30}px)`;
+      $('pr' + i).style.opacity = pk; $('pr' + i).style.transform = `translateX(${(1 - pk) * 30}px)`;
+      const done = isNew && macCheck;
+      $('mb' + i).className = 'box' + (done ? ' on' : '');
+      $('mt' + i).style.textDecoration = done ? 'line-through' : 'none';
+      $('mt' + i).style.opacity = done ? 0.45 : 1;
+      const pdone = isNew && phCheck;
+      $('pb' + i).className = 'box' + (pdone ? ' on' : '');
+      $('pt' + i).style.textDecoration = pdone ? 'line-through' : 'none';
+      $('pt' + i).style.opacity = pdone ? 0.45 : 1;
+    }
+    const mLeft = 2 + (macAdd ? 1 : 0) - (macCheck ? 1 : 0);
+    const pLeft = 2 + (phAdd ? 1 : 0) - (phCheck ? 1 : 0);
+    $('s6cnt').textContent = `${mLeft} left`;
+    $('s6pn').textContent = `${pLeft} remaining`;
+    // travelling dot (Mac panel ↔ phone) along an arc over the term
+    const dot = $('s6dot');
+    let dp = null, dir = 1;
+    if (lt >= 2.9 && lt <= 3.7) { dp = seg(lt, 2.9, 3.7); dir = 1; }
+    else if (lt >= 5.6 && lt <= 6.4) { dp = seg(lt, 5.6, 6.4); dir = -1; }
+    if (dp == null) dot.style.opacity = 0;
+    else {
+      const u = eInOut(dir > 0 ? dp : 1 - dp);
+      const x0 = 830, x1 = 610;
+      dot.style.opacity = 1;
+      dot.style.left = (lerp(x0, x1, u) - 13) + 'px';
+      dot.style.top = (640 - Math.sin(u * Math.PI) * 60 - 13 + (dir > 0 ? 0 : 0)) + 'px';
+    }
+    let cap = '';
+    if (lt >= 1.2 && lt < 2.6) cap = '① Add a to-do from the terminal';
+    else if (lt >= 2.6 && lt < 4.4) cap = '② The app writes to Reminders and iCloud delivers it to the phone';
+    else if (lt >= 4.8 && lt < 6.4) cap = '③ Check it off on the phone';
+    else if (lt >= 6.4) cap = '④ The Mac panel marks it done too';
+    $('s6cap').textContent = cap;
+    $('s6cap').style.opacity = cap ? 1 : 0;
+  }
+
+  // 7 end
+  if (t >= 45.8) {
+    const lt = t - 45.8;
+    const x = eOut(seg(lt, 0.1, 0.9));
+    $('s7img').style.opacity = x; $('s7img').style.transform = `translateY(${(1 - x) * 30}px)`;
+    rise($('s7title'), lt, 0.4, 0.8, 30); rise($('s7sub'), lt, 0.8, 0.8, 20); rise($('s7files'), lt, 1.1, 0.8, 16);
+    rise($('s7pill'), lt, 1.4, 0.8, 24, 'translateX(-50%)');
+  }
+};
+</script>
+</body>
+</html>
