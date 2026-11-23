@@ -3,6 +3,7 @@ import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     let store = TodoStore()
+    let sync = ReminderSync()
     var statusItem: NSStatusItem!
     let popover = NSPopover()
 
@@ -28,7 +29,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         popover.appearance = NSAppearance(named: .aqua)
         popover.delegate = self
 
-        store.onChange = { [weak self] in self?.updateButton() }
+        store.onChange = { [weak self] in self?.updateButton(); self?.sync.request() }
+        sync.start()
         store.onAllDone = { [weak self] in
             self?.excitedUntil = Date().addingTimeInterval(3.5)
             self?.showCelebration()

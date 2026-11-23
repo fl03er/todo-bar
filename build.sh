@@ -52,6 +52,8 @@ cat > "$B/Contents/Info.plist" <<PLIST
   <key>LSMinimumSystemVersion</key><string>$MIN</string>
   <key>LSUIElement</key><true/>
   <key>NSHighResolutionCapable</key><true/>
+  <key>NSRemindersFullAccessUsageDescription</key><string>아이폰 미리알림과 할 일을 동기화하려면 필요해요.</string>
+  <key>NSRemindersUsageDescription</key><string>아이폰 미리알림과 할 일을 동기화하려면 필요해요.</string>
 </dict>
 </plist>
 PLIST
