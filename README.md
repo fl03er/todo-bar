@@ -9,9 +9,9 @@ macOS 메뉴바 투두리스트. 눈 달린 구름을 누르면 목록이 열리
 <p align="center"><img src="docs/celebrate.png" width="300"></p>
 
 ## 동작 원리
-<video src="https://github.com/fl03er/todo-bar/raw/main/docs/sync-mechanism.mp4" controls muted width="100%"></video>
+<img src="docs/sync-mechanism.gif" alt="TodoBar ↔ Reminders sync mechanism">
 
-미리알림 동기화 원리 영상 ([mp4](docs/sync-mechanism.mp4), 영어)
+고화질 영상: [sync-mechanism.mp4](docs/sync-mechanism.mp4) (영어)
 
 ## 설치
 
