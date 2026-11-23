@@ -2,15 +2,16 @@
 
 <img src="docs/character.png" width="88" align="right">
 
-<video src="docs/sync-mechanism.mp4" controls muted width="100%"></video>
-
-<sub>미리알림 동기화 원리 영상 ([mp4](docs/sync-mechanism.mp4), 영어)</sub>
-
 macOS 메뉴바 투두리스트. 눈 달린 구름을 누르면 목록이 열리고, 옆 숫자는 남은 할 일 수.
 터미널이나 Claude Code에서 `todo`로 추가·완료·삭제하면 바로 반영돼. 아이폰 미리알림과도 동기화돼.
 전부 끝내면 컨페티가 터지고, 남은 게 없는 동안 구름은 눈을 감고 자 🎉💤
 
 <p align="center"><img src="docs/celebrate.png" width="300"></p>
+
+## 동작 원리
+<video src="https://github.com/fl03er/todo-bar/raw/main/docs/sync-mechanism.mp4" controls muted width="100%"></video>
+
+미리알림 동기화 원리 영상 ([mp4](docs/sync-mechanism.mp4), 영어)
 
 ## 설치
 
